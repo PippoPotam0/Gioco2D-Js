@@ -1,130 +1,186 @@
 import Vector2D from './vector2d.js';
 import Clock from './clock.js';
-import conf from '../config.js';
 import Sprite from './sprite.js';
 import Fireball from './fireball.js';
-import Hitbox from './hitbox.js';
+import Enemy from './enemy.js';
+import conf from '../config.js';
 
-class Player extends Hitbox {
+class Player extends Sprite {
     name;
     score;
-    velocity; // e non speed, mi raccomando
+    velocity;
     hp304;
     currentImageIndex;
-    images;
     moving;
     update_timer;
+    obstacle;
+    images;
+    enemies;
 
-    constructor(images_srcs, name) {
-        super(50, conf.GROUND_Y,165,175)
+    constructor(images_srcs, name, obstacle, enemies) {
+        super(images_srcs[0], 175, 175, 7, 1, 110, 175, 50, conf.GROUND_Y + 175);
+        this.obstacle = obstacle;
+        this.score = 0;
         this.name = name;
-        // importo le immagini dello sprite_sheet nel vettore di immagini
         this.images = [];
-        for(let src of images_srcs) {
+        for (let src of images_srcs) {
             let img = new Image();
             img.src = src;
             this.images.push(img);
         }
-        //  inizialmente uso la prima immagine
-        this.currentImageIndex = 0; 
-
+        this.currentImageIndex = 0;
         this.velocity = new Vector2D();
         this.velocity.set(0, 0);
-        this.hp304 = 100;
-        this.score = 0;
+        this.hp304 = 165;
         this.moving = false;
         this.update_timer = new Clock(125);
         this.canJump = true;
         this.bullets = [];
+        this.enemies = [];
+        this.enemies = enemies;
+
+        
     }
 
     jump() {
-        if(this.canJump) {
-            this.velocity.y = 32;
-            //this.velocity.x = 10;
+        if (this.canJump) {
+            this.velocity.y = 25;
         }
-        //  TODO: Fix double jump based on whatever ground collision
-        // Not only ground
-        if(this.position.y > conf.GROUND_Y) {
+        if (this.position.y > conf.GROUND_Y) {
             this.canJump = false;
         }
     }
 
-    drawHealthBar(ctx) {
-        const maxHP = 100; // Massima quantità di HP
-        const hp = this.hp304; // HP attuali del giocatore
-        const barWidth = 100; // Larghezza della barra della vita
-        const barHeight = 10; // Altezza della barra della vita
-        const x = this.position.x; // Posizione X della barra della vita
-        const y = ctx.canvas.clientHeight - this.position.y - 20; // Posizione Y della barra della vita, leggermente sopra il giocatore
-    
-        // Disegna la parte esterna della barra della vita (il bordo)
-        ctx.fillStyle = 'black';
-        ctx.fillRect(x, y, barWidth, barHeight);
-    
-        // Calcola la larghezza effettiva della barra della vita in base agli HP correnti
-        let healthWidth = (hp / maxHP) * barWidth;
-    
-        // Scegli il colore in base alla quantità di HP rimasti
-        let healthColor = 'green';
-        if (hp < maxHP / 2) {
-            healthColor = 'yellow';
-        }
-        if (hp < maxHP / 4) {
-            healthColor = 'red';
-        }
-    
-        // Disegna la parte interna della barra della vita (la parte colorata che rappresenta gli HP)
-        ctx.fillStyle = healthColor;
-        ctx.fillRect(x, y, healthWidth, barHeight);
-    }
-    
-    
-
     shoot(ctx) {
-        console.log("Shooting: " + ctx.canvas.clientHeight);
-        console.log("y: " + this.position.y);
 
         let fireball = new Fireball(this.position.x + 75, this.position.y - 50);
         this.bullets.push(fireball);
     }
 
     draw(ctx) {
-        ctx.drawImage(this.images[this.currentImageIndex], this.position.x, 
-            ctx.canvas.clientHeight - this.position.y, 
+        ctx.drawImage(this.images[this.currentImageIndex], this.position.x,
+            ctx.canvas.clientHeight - this.position.y,
             175, 175);
+        ctx.strokeStyle = "white";
+        ctx.strokeRect(this.position.x, (ctx.canvas.clientHeight - (this.position.y + 20)), 165, 20);
+        ctx.fillStyle = "green";
+        ctx.fillRect(this.position.x, (ctx.canvas.clientHeight - (this.position.y + 20)), this.hp304, 20);
         ctx.font = "30px Verdana";
         ctx.fillStyle = "white";
         ctx.fillText(this.name, this.position.x + 50, (ctx.canvas.clientHeight - (this.position.y + 25)));
         this.bullets.forEach((b) => b.draw(ctx));
-    
-        this.drawHealthBar(ctx); // Disegna la barra della vita
-    
+        this.enemies.forEach((e) => e.draw(ctx));
+        this.drawScore(ctx);
         super.draw(ctx);
     }
 
     update() {
+        //collisioni offerte dall'Incredibile Bulk, Crema
+        const prevBottom = this.position.y;
+        const prevLeft = this.position.x;
+        const prevTop = this.position.y + this.height;
+        const prevRight = this.position.x + this.width;
+
         this.position.add(this.velocity);
         this.moving = this.velocity.x != 0;
         this.update_timer.update();
-
-        //  accelerazione gravitazionale se lascio la terra
-        // if(this.position.y > conf.GROUND_Y) {
-        //     this.velocity.y -= 1.2;
-        // }
         this.velocity.y += -1.2;
-        if(this.moving) {
-            if(this.update_timer.tick()) {
+
+        const bottom = this.position.y;
+        const left = this.position.x;
+        const top = this.position.y + this.height;
+        const right = this.position.x + this.width;
+
+        const collision = this.obstacle;
+        console.log()
+
+        if (bottom < collision.position.y + collision.height && right > collision.position.x && top > collision.position.y && left < collision.position.x + collision.width) {
+            if (prevRight <= collision.position.x && right > collision.position.x) this.position.x = collision.position.x - this.width;
+            if (prevLeft >= collision.position.x + collision.width && left < collision.position.x + collision.width) this.position.x = collision.position.x + collision.width;
+            if (prevTop >= collision.position.y + collision.height && top < collision.position.y + collision.height) this.position.y = collision.position.y + collision.height;
+            if (prevBottom >= collision.position.y + collision.height && bottom <= collision.position.y + collision.height) {
+                this.position.y = collision.position.y + collision.height;
+                this.velocity.y = 0;
+                this.canJump = true;
+            }
+        }
+
+        this.checkCollisionsWithEnemies();
+        this.checkEnemyCollisions();
+        this.checkFireBallCollisions();
+        
+
+        if (this.moving) {
+            if (this.update_timer.tick()) {
                 this.currentImageIndex += 1;
                 this.currentImageIndex %= this.images.length;
             }
-            
-        }
-        else {
+        } else {
             this.currentImageIndex = 0;
         }
 
         this.bullets.forEach((b) => b.update());
+        this.enemies.forEach((e) => e.update());
+    }
+
+    get x() {
+        return this.position.x;
+    }
+    get y() {
+        return this.position.y;
+    }
+
+    checkCollisionsWithEnemies() {
+        this.enemies.forEach((e) => {
+            if (this.x < e.position.x + e.width && this.x + this.width > e.position.x && this.y < e.position.y + e.height) {
+                alert(" YOU LOST");
+                this.reset();
+            }
+        });
+    }
+
+    checkEnemyCollisions() {
+        this.enemies.forEach((e) => {
+            this.bullets.forEach((b) => {
+                if (!e.deleted && b.collision(e)) {
+                    e.hp304 -= 20;
+                    this.score += 5;
+                    this.bullets.splice(this.bullets.indexOf(b), 1);
+                }
+            });
+
+            if(e.position.x + e.width < 0){
+                this.enemies.splice(this.enemies.indexOf(e), 1);
+                console.log("deleting enemy");
+            }
+        });
+    }
+
+    checkFireBallCollisions() {
+        this.bullets.forEach((b) => {
+            if (b.position.x > conf.BG_WIDTH) {
+                this.bullets.splice(this.bullets.indexOf(b), 1);
+                console.log("deleting fireball");
+            }
+            if(b.collision(this.obstacle)){
+                this.bullets.splice(this.bullets.indexOf(b), 1);
+            }
+        });
+    }
+
+    reset() {
+        this.enemies = [];
+        this.bullets = [];
+        this.score = 0;
+        this.position.x = 50;
+        this.position.y = conf.GROUND_Y;
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+    }
+
+    drawScore(ctx) {
+        ctx.fillStyle = "black";
+        ctx.fillText("Score: " + this.score, 20, 30)
     }
 }
 

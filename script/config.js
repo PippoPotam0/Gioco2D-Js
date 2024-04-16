@@ -1,5 +1,3 @@
-
-
 let conf = {
     BACKGROUND_IMG_SRC: "../assets/img/background.png",
     BG_WIDTH: 900,
@@ -7,7 +5,7 @@ let conf = {
 
     GAME_FPS: 60,
 
-    GROUND_Y: 200,
+    GROUND_Y: 40,
 
     WALK_SPEED: 3,
     RUN_SPEED: 6,
@@ -17,7 +15,9 @@ let conf = {
     '../assets/img/player/tile002.png', '../assets/img/player/tile003.png', '../assets/img/player/tile004.png',
     '../assets/img/player/tile005.png', '../assets/img/player/tile006.png'],
 
-    FIREBALL_SRC: '../assets/img/fireball-sheet.png'
+    FIREBALL_SRC: '../assets/img/fireball-sheet.png',
+
+    OBSTACLE_SRC: '../assets/img/obstacle.png'
 };
 
 export default conf;

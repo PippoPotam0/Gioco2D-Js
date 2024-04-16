@@ -2,6 +2,7 @@ import Player from "../models/player.js";
 import Sound from "../models/sound.js";
 import Sprite from "../models/sprite.js";
 import Hitbox from "../models/hitbox.js";
+import Enemy from "../models/enemy.js";
 
 class Game {
     playerNickname;
@@ -11,6 +12,7 @@ class Game {
         this.canvas = canvas;
         this.playerNickname = playerNickname;
         this.ctx = canvas.getContext('2d');
+        this.floor = 216;
     }
 
     init() {
@@ -19,14 +21,17 @@ class Game {
         this.canvas.height = this.config.BG_HEIGHT;
         this.canvas.style.backgroundImage = "url('" + this.config.BACKGROUND_IMG_SRC + "')";
         this.canvas.style.backgroundSize = "contain";
+        this.obstacle = new Sprite(this.config.OBSTACLE_SRC, 360, 360, 1, 1, 110, 175, 600,  this.config.GROUND_Y + 175);
+        this.ground = new Hitbox(0, 40, this.canvas.width, 150);
+        this.enemies = [];
+        this.enemies.push(new Enemy(this.enemies, this.config.PLAYER_SRC, "Gigi"));
+         setInterval(() => {
+             this.enemies.push(new Enemy(this.enemies, this.config.PLAYER_SRC, "Gigi"));
+         }, 5000);
 
-        this.ground = new Hitbox(0,40, this.canvas.width, 150);
-        this.player = new Player(this.config.PLAYER_SRC, this.playerNickname);
-        this.enemy = new Player(this.config.PLAYER_SRC, "Gigi");
-        this.enemy.position.x = 500;
-        
+        this.player = new Player(this.config.PLAYER_SRC, this.playerNickname, this.obstacle, this.enemies);
         this.fireball = new Sprite(this.config.FIREBALL_SRC, 360, 360, 6, 1, 50, 50);
-        //this.obstacle = new Hitbox(550, 200, 100, 200);
+
         this.bgMusic = new Sound("assets/audio/background.mp3");
     }
 
@@ -63,62 +68,19 @@ class Game {
     }
 
     update() {
-        if(this.player.collision(this.ground)){
+        //console.log(this.player.position.y + " " + this.floor)
+        if(this.player.position.y < this.floor){
             if(this.player.velocity.y < 0){
                 this.player.velocity.y = 0;
                 this.player.canJump = true;
                 this.player.position.y = this.ground.position.y + this.player.height;
-                // console.log("Player pos: ", this.player.position);
-                // console.log("Ground: ", this.ground.position);
             }
             
         }
-        // if(this.player.collision(this.obstacle) || this.obstacle.collision(this.player)) {
-        //     if(this.player.position.y > this.obstacle.y + this.player.height){
-        //         this.player.velocity.y = 0;
-        //     }
-        //     /*
-        //     if(this.player.velocity.x > 0){
-        //         this.player.velocity.x = 0;
-        //     }
-        //     */
-        //     //this.player.position.x = this.obstacle.position.x - this.player.width;
-        //     console.log("PLAYER CONTRO IL MURO");
-        // };
-        
-        if(this.enemy.collision(this.ground)){
-            if(this.enemy.velocity.y < 0){
-                this.enemy.velocity.y = 0;
-                this.enemy.canJump = true;
-                this.enemy.position.y = this.ground.position.y + this.enemy.height;
-                // console.log("Player pos: ", this.player.position);
-                // console.log("Ground: ", this.ground.position);
-            }
-            
-        }
-        // if(this.enemy.collision(this.obstacle) || this.obstacle.collision(this.enemy)) {
-        //     if(this.enemy.position.y > this.obstacle.y + this.enemy.height){
-        //         this.enemy.velocity.y = 0;
-        //     }
-        //     /*
-        //     if(this.player.velocity.x > 0){
-        //         this.player.velocity.x = 0;
-        //     }
-        //     */
-        //     //this.player.position.x = this.obstacle.position.x - this.player.width;
-        //     console.log("PLAYER CONTRO IL MURO");
-        // };
 
-        if(this.fireball.collision(this.enemy)){
-            this.player.hp304 -= 10;
-            this.fireball.position.x = 0;
-            this.fireball.position.y = 0;
-            console.log("COLPITO");
-        }
-        
         this.player.update();
         this.fireball.update();
-        this.enemy.update();
+        
     }
 
     playBgMusic() {
@@ -132,14 +94,14 @@ class Game {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.player.draw(this.ctx);
-        this.player.drawHealthBar(this.ctx);
-        this.enemy.draw(this.ctx);
         this.fireball.draw(this.ctx);
         this.ground.draw(this.ctx);
-        //his.obstacle.draw(this.ctx);
+        this.obstacle.draw(this.ctx);
         
     }
 
 }
 
 export default Game;
+
+
